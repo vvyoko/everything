@@ -27,8 +27,7 @@
     部分获取时间的方法在某些排序方式时会出错,未知原因 SetSort(***ASCENDING)
  */
 
-#Requires 2.0-beta.3
-class everything
+ class Everything
 {
     ;排序类型 https://www.voidtools.com/support/everything/sdk/everything_getsort/
     sortType := {
@@ -150,13 +149,13 @@ class everything
     GetMinorVersion => (*) => this._GetVar("Everything_GetMinorVersion")
 
     ;返回可见文件结果的数量 使用Everything_SetRequestFlags时不支持
-    GetNumFileResults => (*) => this._GetVar("Everything_GetNumFileResults")
+    GetNumFileResults => (*) => this._GetNum("Everything_GetNumFileResults")
 
     ;返回可见文件夹结果的数量 使用Everything_SetRequestFlags时不支持
-    GetNumFolderResults => (*) => this._GetVar("Everything_GetNumFolderResults")
+    GetNumFolderResults => (*) => this._GetNum("Everything_GetNumFolderResults")
 
     ;返回可见文件和文件夹结果的数量
-    GetNumResults => (*) => this._GetVar("Everything_GetNumResults")
+    GetNumResults => (*) => this._GetNum("Everything_GetNumResults")
 
     ;返回可用结果的第一项偏移量
     GetOffset => (*) => DllCall(this.dll "Everything_GetOffset")
@@ -178,19 +177,19 @@ class everything
     ;https://docs.microsoft.com/en-gb/windows/win32/fileio/file-attribute-constants
     GetResultAttributes(dwIndex := 0)
     {
-        static FILE_ATTRIBUTE_READONLY := 1,
-        FILE_ATTRIBUTE_HIDDEN := 2,
-        FILE_ATTRIBUTE_SYSTEM := 4,
-        FILE_ATTRIBUTE_DIRECTORY := 16,
-        FILE_ATTRIBUTE_ARCHIVE := 32,
-        FILE_ATTRIBUTE_ENCRYPTED := 64,
-        FILE_ATTRIBUTE_NORMAL := 128,
-        FILE_ATTRIBUTE_TEMPORARY := 256,
-        FILE_ATTRIBUTE_SPARSE_FILE := 512,
-        FILE_ATTRIBUTE_REPARSE_POINT := 1024,
-        FILE_ATTRIBUTE_COMPRESSED := 2048,
-        FILE_ATTRIBUTE_OFFLINE := 4096,
-        FILE_ATTRIBUTE_NOT_CONTENT_INDEXED := 8192
+        ; static FILE_ATTRIBUTE_READONLY := 1,
+        ; FILE_ATTRIBUTE_HIDDEN := 2,
+        ; FILE_ATTRIBUTE_SYSTEM := 4,
+        ; FILE_ATTRIBUTE_DIRECTORY := 16,
+        ; FILE_ATTRIBUTE_ARCHIVE := 32,
+        ; FILE_ATTRIBUTE_ENCRYPTED := 64,
+        ; FILE_ATTRIBUTE_NORMAL := 128,
+        ; FILE_ATTRIBUTE_TEMPORARY := 256,
+        ; FILE_ATTRIBUTE_SPARSE_FILE := 512,
+        ; FILE_ATTRIBUTE_REPARSE_POINT := 1024,
+        ; FILE_ATTRIBUTE_COMPRESSED := 2048,
+        ; FILE_ATTRIBUTE_OFFLINE := 4096,
+        ; FILE_ATTRIBUTE_NOT_CONTENT_INDEXED := 8192
 
         return DllCall(this.dll "Everything_GetResultAttributes", "int", dwIndex)
     }
@@ -223,8 +222,10 @@ class everything
     GetResultFullPathName(index := 0, lpString := 256)
     {
         value := Buffer(lpString * 2)
-        DllCall(this.dll "Everything_GetResultFullPathName", "int", index, "ptr", value, "int", lpString)
-        return StrGet(value)
+        if DllCall(this.dll "Everything_GetResultFullPathName", "int", index, "ptr", value, "int", lpString)
+            return StrGet(value)
+        else if this.GetLastError()
+            this._ThrowError("Everything_GetResultFullPathName")
     }
 
     ;返回结果的突出显示的文件名部分 0x00002000
@@ -282,16 +283,16 @@ class everything
     IncRunCountFromFileName => (this, lpFileName) => this._GetNum("Everything_IncRunCountFromFileName", "str", lpFileName)
 
     ;如果 Everything 以管理员身份运行，则该函数返回非零值
-    IsAdmin => (*) => this._GetVar("Everything_IsAdmin")
+    IsAdmin => (*) => this._GetNum("Everything_IsAdmin")
 
     ;如果设置和数据保存在 %APPDATA%\Everything 中，则该函数返回非零
-    IsAppData => (*) => this._GetVar("Everything_IsAppData")
+    IsAppData => (*) => this._GetNum("Everything_IsAppData")
 
     ;检查数据库是否已完全加载
-    IsDBLoaded => (*) => this._GetVar("Everything_IsDBLoaded")
+    IsDBLoaded => (*) => this._GetNum("Everything_IsDBLoaded")
 
     ;检查指定的文件信息是否已编制索引并启用了快速排序 ; https://www.voidtools.com/support/everything/sdk/everything_isfastsort/
-    IsFastSort => (this, sortType := 1) => this._GetVar("Everything_IsFastSort", "int", sortType)
+    IsFastSort => (this, sortType := 1) => this._GetNum("Everything_IsFastSort", "int", sortType)
 
     ;检查指定的文件信息是否已编制索引 ; https://www.voidtools.com/support/everything/sdk/everything_isfileinfoindexed/
     IsFileInfoIndexed => (this, fileInfoType := 1) => DllCall(this.dll "Everything_IsFileInfoIndexed", "int", fileInfoType)
@@ -302,9 +303,10 @@ class everything
     ;检查是否为文件夹
     IsFolderResult => (this, index := 0) => this._GetNum("Everything_IsFolderResult", "int", index)
 
-    ;检查指定的窗口消息是否为查询回复 ;https://www.voidtools.com/support/everything/sdk/everything_isqueryreply/
-    IsQueryReply(message, wParam, lParam, nId)
+    ;检查消息是否为WM_COPYDATA消息 ;https://www.voidtools.com/support/everything/sdk/everything_isqueryreply/
+    IsQueryReply(message, wParam, lParam, nId := 0)
     {
+        return DllCall(this.dll "Everything_IsQueryReply", "uint", message, "prt", wParam, "ptr", lParam, "int", nId)
         ;待实现
     }
 
@@ -404,7 +406,7 @@ class everything
             this._ThrowError(method)
     }
 
-    ; error with some SetSort(***ASCENDING)
+    ; error with some SetSort(***ASCENDING) https://www.autoahk.com/archives/23149
     _GetDate(method, dwIndex)
     {
         date := Buffer(8, 0)

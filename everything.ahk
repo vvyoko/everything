@@ -27,7 +27,7 @@
     部分获取时间的方法在某些排序方式时会出错,未知原因 SetSort(***ASCENDING)
  */
 
- class Everything
+class Everything
 {
     ;排序类型 https://www.voidtools.com/support/everything/sdk/everything_getsort/
     sortType := {
@@ -89,6 +89,7 @@
             this.dll := A_LineFile "\..\Everything64.dll"
         else
             MsgBox("DLL未找到")
+
         this.hModule := DllCall("LoadLibrary", "str", this.dll)
         this.dll .= "\"
     }
@@ -99,13 +100,13 @@
     CleanUp => (*) => DllCall(this.dll "Everything_CleanUp")
 
     ;删除所有运行历史记录
-    DeleteRunHistory => (*) => this._GetVar("Everything_DeleteRunHistory")
+    DeleteRunHistory => (*) => this._GetTrue("Everything_DeleteRunHistory")
 
     ;退出
-    Exit => (*) => this._GetVar("Everything_Exit")
+    Exit => (*) => this._GetTrue("Everything_Exit")
 
     ;检索 Everything 的内部版本号
-    GetBuildNumber => (*) => this._GetVar("Everything_GetBuildNumber")
+    GetBuildNumber => (*) => this._GetTrue("Everything_GetBuildNumber")
 
     ;最后一个错误代码值 https://www.voidtools.com/support/everything/sdk/everything_getlasterror/
     GetLastError()
@@ -131,7 +132,7 @@
     }
 
     ;检索 Everything 的主版本号
-    GetMajorVersion => (*) => this._GetVar("Everything_GetMajorVersion")
+    GetMajorVersion => (*) => this._GetTrue("Everything_GetMajorVersion")
 
     ;如果启用了匹配大小写，则该函数返回 TRUE
     GetMatchCase => (*) => DllCall(this.dll "Everything_GetMatchCase")
@@ -146,7 +147,7 @@
     GetMax => (*) => DllCall(this.dll "Everything_GetMax")
 
     ;检索 Everything 的次要版本号
-    GetMinorVersion => (*) => this._GetVar("Everything_GetMinorVersion")
+    GetMinorVersion => (*) => this._GetTrue("Everything_GetMinorVersion")
 
     ;返回可见文件结果的数量 使用Everything_SetRequestFlags时不支持
     GetNumFileResults => (*) => this._GetNum("Everything_GetNumFileResults")
@@ -190,8 +191,8 @@
         ; FILE_ATTRIBUTE_COMPRESSED := 2048,
         ; FILE_ATTRIBUTE_OFFLINE := 4096,
         ; FILE_ATTRIBUTE_NOT_CONTENT_INDEXED := 8192
-
-        return DllCall(this.dll "Everything_GetResultAttributes", "int", dwIndex)
+        attributes := DllCall(this.dll "Everything_GetResultAttributes", "int", dwIndex)
+        return attributes > 0 ? attributes : this.GetLastError() ? this._ThrowError("Everything_GetResultAttributes") : ""
     }
 
     ;返回结果的访问日期 0x00000080
@@ -253,7 +254,7 @@
     GetResultSize => (this, dwIndex := 0) => this._GetNum("Everything_GetResultSize", "int", dwIndex, "int64*")
 
     ;返回修订版号
-    GetRevision => (*) => this._GetVar("Everything_GetRevision")
+    GetRevision => (*) => this._GetTrue("Everything_GetRevision")
 
     ;返回指定文件运行次数
     GetRunCountFromFileName => (this, lpFileName) => this._GetNum("Everything_GetRunCountFromFileName", "str", lpFileName)
@@ -268,7 +269,7 @@
     ;(1)	x86 (32 bit).
     ;(2)	x64 (64 bit).
     ;(3)	ARM.
-    GetTargetMachine => (*) => this._GetVar("Everything_GetTargetMachine")
+    GetTargetMachine => (*) => this._GetTrue("Everything_GetTargetMachine")
 
     ;返回文件结果的总数 使用Everything_SetRequestFlags时不支持
     GetTotFileResults => (*) => this._GetNum("Everything_GetTotFileResults")
@@ -306,7 +307,7 @@
     ;检查消息是否为WM_COPYDATA消息 ;https://www.voidtools.com/support/everything/sdk/everything_isqueryreply/
     IsQueryReply(message, wParam, lParam, nId := 0)
     {
-        return DllCall(this.dll "Everything_IsQueryReply", "uint", message, "prt", wParam, "ptr", lParam, "int", nId)
+        ; return DllCall(this.dll "Everything_IsQueryReply", "uint", message, "prt", wParam, "ptr", lParam, "int", nId)
         ;待实现
     }
 
@@ -314,19 +315,19 @@
     IsVolumeResult => (this, index := 0) => this._GetNum("Everything_IsVolumeResult", "int", index)
 
     ;使用当前搜索状态执行 Everything IPC 查询
-    Query => (this, bWait := 1) => this._GetVar("Everything_Query", "int", bWait)
+    Query => (this, bWait := 1) => this._GetTrue("Everything_Query", "int", bWait)
 
     ;强制重新生成 Everything 索引
-    RebuildDB => (*) => this._GetVar("Everything_RebuildDB")
+    RebuildDB => (*) => this._GetTrue("Everything_RebuildDB")
 
     ;将结果列表和搜索状态重置为默认状态，从而释放库分配的任何内存
     Reset => (*) => DllCall(this.dll "Everything_Reset")
 
     ;将索引保存到磁盘
-    SaveDB => (*) => this._GetVar("Everything_SaveDB")
+    SaveDB => (*) => this._GetTrue("Everything_SaveDB")
 
     ;请求 Everything 将运行历史记录保存到磁盘
-    SaveRunHistory => (*) => this._GetVar("Everything_SaveRunHistory")
+    SaveRunHistory => (*) => this._GetTrue("Everything_SaveRunHistory")
 
     ; 指定搜索区分大小写还是不区分大小写
     SetMatchCase => (this, bEnable := true) => DllCall(this.dll "Everything_SetMatchCase", "int", bEnable)
@@ -356,7 +357,7 @@
     SetRequestFlags => (this, dwRequestFlags := 0x00000003) => DllCall(this.dll "Everything_SetRequestFlags", "int", dwRequestFlags)
 
     ;设置“按文件名索引的所有内容”中指定文件的运行计数
-    SetRunCountFromFileName => (this, lpFileName, dwRunCount) => this._GetVar("Everything_SetRunCountFromFileName", "str", lpFileName, "int", dwRunCount)
+    SetRunCountFromFileName => (this, lpFileName, dwRunCount) => this._GetTrue("Everything_SetRunCountFromFileName", "str", lpFileName, "int", dwRunCount)
 
     ;设置 IPC 查询的搜索字符串
     SetSearch => (this, lpString := 0) => DllCall(this.dll "Everything_SetSearch", "str", lpString)
@@ -368,8 +369,9 @@
     SortResultsByPath => (*) => DllCall(this.dll "Everything_SortResultsByPath")
 
     ;请求 Everything 重新扫描所有文件夹索引
-    UpdateAllFolderIndexes => (*) => this._GetVar("Everything_UpdateAllFolderIndexes")
+    UpdateAllFolderIndexes => (*) => this._GetTrue("Everything_UpdateAllFolderIndexes")
 
+    ;返回可为0的数值或者抛出错误
     _GetNum(method, params*)
     {
         if !params.Length
@@ -379,34 +381,23 @@
         else if params.Length = 3
             DllCall(this.dll method, params[1], params[2], params[3], &num := 0)
 
-        if num
-            return num
-        else if !this.GetLastError()
-            return 0
-        else
-            this._ThrowError(method)
+        return num ? num : this.GetLastError() ? this._ThrowError(method) : 0
     }
 
-    _GetVar(method, params*)
+    ;返回True或者抛出错误
+    _GetTrue(method, params*)
     {
         if !params.Length
-        {
-            if (var := DllCall(this.dll method))
-                return var
-        } else if params.Length = 2
-        {
-            if (var := DllCall(this.dll method, params[1], params[2]))
-                return var
-        } else if params.Length = 4
-        {
-            if (var := DllCall(this.dll method, params[1], params[2], params[3], params[4]))
-                return var
-        }
-        if this.GetLastError()
-            this._ThrowError(method)
+            var := DllCall(this.dll method)
+        else if params.Length = 2
+            var := DllCall(this.dll method, params[1], params[2])
+        else if params.Length = 4
+            var := DllCall(this.dll method, params[1], params[2], params[3], params[4])
+
+        return var ? var : this.GetLastError() ? this._ThrowError(method) : ""
     }
 
-    ; error with some SetSort(***ASCENDING) https://www.autoahk.com/archives/23149
+    ;返回日期或者抛出错误 https://www.autoahk.com/archives/23149
     _GetDate(method, dwIndex)
     {
         date := Buffer(8, 0)
@@ -416,26 +407,24 @@
         hours := A_Now
         hours := DateDiff(hours, A_NowUTC, 'Hours')
         second := (NumGet(date, 4, "uint") << 32 | NumGet(date, 0, "uint")) // 10000000
-        if !second && this.GetLastError()
-            this._ThrowError(method)
-        if !second
-            return ""
+
+        if !second	;error with some SetSort(***ASCENDING)
+            return this.GetLastError() ? this._ThrowError(method) : ""
+
         time := "16010101"
         time := DateAdd(time, second, 'Seconds')
         time := DateAdd(time, hours, 'Hours')
         return time
     }
 
+    ;返回字符串或者抛出错误
     _GetStr(method, index)
     {
         str := DllCall(this.dll method, "int", index)
-
-        if str
-            return StrGet(str)
-        else if this.GetLastError()
-            this._ThrowError(method)
+        return str ? StrGet(str) : this.GetLastError() ? this._ThrowError(method) : ""
     }
 
+    ;抛出错误
     _ThrowError(method)
     {
         this.error.Message .= "`n函数 : " method
